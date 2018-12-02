@@ -1,0 +1,185 @@
+"""This is the example module.
+
+This module does stuff.
+"""
+
+#from __future__ import
+
+__all__ = ["Deck"]
+__version__ = "0.1"
+__author__ = "Sam Shinn"
+
+#import os
+import sys
+from math import log,factorial
+from collections import Counter
+import numpy
+
+class Deck:
+    """This is class simulates a structure like a deck of cards.
+    
+    This class does stuff.
+    """
+    
+    def __init__(self, cards=[]):
+        self.cards = cards
+    
+    def __repr__(self):
+        return repr(self.cards)
+    
+    def __str__(self):
+        return str(self.cards)
+    
+    def __iter__(self):
+        return self
+    
+    def __next__(self):
+        card = self.draw()
+        if card == None:
+            raise StopIteration
+        else: 
+            return card
+    
+    def __len__(self):
+        return len(self.cards)
+    
+    def __contains__(self, x):
+        return x in self.cards
+    
+    
+    def draw(self, bottom=False):
+        if self.cards:
+            if not bottom:
+                return self.cards.pop()
+            else:
+                return self.cards.pop(0)
+        else:
+            return None
+    
+    def place(self, card, bottom=False):
+        if not bottom:
+            self.cards.append(card)
+        else:
+            self.cards.insert(0, card)
+    
+    def peek(self):
+        card = self.draw()
+        self.place(card)
+        return card
+    
+    def flip(self):
+        self.cards.reverse()
+    
+    def insert(self, card):
+        self.cards.insert(self.middle(), card)
+    
+    def middle(self):
+        index = -1
+        mean = len(self.cards)/2
+        standarddeviation = log(len(self.cards))
+        while index < 0 or index > len(self.cards):
+            index = int(numpy.random.normal(mean, standarddeviation))
+        return index
+    
+    def cut(self):
+        index = self.middle()
+        top = Deck(self.cards[index:])
+        bottom = Deck(self.cards[:index])
+        top.flip()
+        bottom.flip()
+        return (top, bottom)
+    
+    
+    def shuffle(self, times=1, kind='riffle'):
+        kind = kind.lower()
+        while times > 0:
+            if 'overhand'.startswith(kind):
+                self.overhand()
+            elif 'riffle'.startswith(kind):
+                self.riffle()
+            elif 'riffle2'.startswith(kind):
+                self.riffle2()
+            elif 'fisheryates'.startswith(kind):
+                self.riffle()
+            times -= 1
+    
+    def overhand(self):
+        newdeck = []
+        while self.cards:
+            chunksize = int(numpy.random.normal(len(self)/4, len(self)/16)) + 1
+            newdeck += self.cards[len(self)-chunksize:]
+            self.cards = self.cards[:len(self)-chunksize]
+        self.cards = newdeck
+
+    def riffle(self):
+        top = []
+        bottom = []
+        while not (top and bottom):
+            top, bottom = self.cut()
+        self.cards.clear()
+        self.place(top.draw())
+        selections = [top]*len(top) + [bottom]*(len(bottom)-1)
+        while selections:
+            selection = numpy.random.choice(selections)
+            selections.remove(selection)
+            self.place(selection.draw())
+        self.place(bottom.draw())
+
+    def riffle2(self):
+        top = []
+        bottom = []
+        while not (top and bottom):
+            top, bottom = self.cut()
+        self.cards.clear()
+        self.place(top.draw())
+        selection = top
+        selections = [top]*len(top) + [bottom]*(len(bottom)-1)
+        while selections:
+            if selection == top and bottom in selections:
+                selection = numpy.random.choice(selections + [bottom]*len(self))
+            elif selection == bottom and top in selections:
+                selection = numpy.random.choice(selections + [top]*len(self))
+            else:
+                selection = numpy.random.choice(selections)
+            selections.remove(selection)
+            self.place(selection.draw())
+        self.place(bottom.draw())
+    
+    def fisheryates(self):
+        newdeck = numpy.random.choice(self.cards,len(self),False)
+        self.cards = newdeck
+    
+    
+    
+    
+    
+# ————————————— TESTING ————————————— 
+if __name__ == "__main__":
+    def testshuffle(shuffletype):
+        N = 10
+        deck = Deck(list(range(N)))
+        permutations = Counter()
+        for i in range(10*factorial(N)):
+            if i % factorial(N) == 0:
+                print('.',end='')
+                sys.stdout.flush()
+            deck.shuffle(kind=shuffletype)
+            permutations[tuple(deck.cards)] += 1
+        print()
+        print(len(permutations), "permutations")
+        counts = Counter(permutations.values())
+        for k,v in counts.items():
+            print(k,v)
+    
+    
+    print("testing riffle shuffle",end='')
+    testshuffle('riffle')
+    
+    print("\ntesting riffle2 shuffle",end='')
+    testshuffle('riffle2')
+    
+    print("\ntesting fisheryates shuffle",end='')
+    testshuffle('fisheryates')
+
+
+
